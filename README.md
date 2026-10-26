@@ -58,6 +58,23 @@ src/
     content/               # rooms, amenities, activities, transfers, legal...
 ```
 
+## Backend API & deployment
+
+The room list is loaded from the Express backend (`GET /api/rooms`) through
+`src/lib/api/rooms.ts`. Set the backend URL in `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+If the variable is unset, or the API is unreachable/cold, the site falls back to
+the bundled catalogue in `src/lib/content/rooms.ts`, so it always renders.
+
+When deploying the frontend (e.g. Vercel), add `NEXT_PUBLIC_API_URL` pointing at
+the deployed backend (for example `https://the-shrub-lodge-backend.onrender.com`).
+The backend also needs the frontend's origin(s) in its `FRONTEND_URL` variable
+for CORS.
+
 ## Content & images
 
 All copy was extracted verbatim from the original export and lives in
