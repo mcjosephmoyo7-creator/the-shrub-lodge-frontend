@@ -13,7 +13,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { IMAGES, wix } from "@/lib/images";
 import { siteConfig } from "@/lib/site";
 import { features, testimonials } from "@/lib/content/features";
-import { rooms } from "@/lib/content/rooms";
+import { getRooms } from "@/lib/api/rooms";
 import { amenities, amenitiesIntro } from "@/lib/content/amenities";
 
 
@@ -77,7 +77,9 @@ const lodgeMoments = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const rooms = await getRooms();
+
   return (
     <>
       <Hero
