@@ -59,15 +59,11 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "3.2 Automatically Collected Information",
       paragraphs: [
-        "When you visit our website, we may automatically collect:",
+        "Our hosting and security services may record technical request details, such as IP address, browser, and request time, for service operation and abuse prevention. Optional usage analytics are collected only if you enable analytics cookies.",
       ],
       list: [
-        "IP address",
-        "Browser type",
-        "Device type",
-        "Pages visited",
-        "Date and time of visits",
-        "Website usage data",
+        "IP address and browser information in operational logs",
+        "Pages and request times when optional analytics are enabled",
       ],
     },
     {
@@ -118,7 +114,7 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "7. Data Storage and Security",
       paragraphs: [
-        "We take reasonable steps to protect your personal information from:",
+        "Contact form messages are stored in the lodge's CMS database so an administrator can respond to enquiries. Access is restricted to the owner dashboard. We take reasonable steps to protect personal information from:",
       ],
       list: [
         "Unauthorized access",
@@ -140,12 +136,14 @@ export const privacyPolicy: LegalDocument = {
     },
     {
       heading: "9. Cookies and Tracking",
-      paragraphs: ["Our website may use cookies to:"],
+      paragraphs: [
+        "We use a necessary cookie to remember your cookie preferences. Analytics and marketing scripts are disabled unless you choose to allow their category in the cookie banner.",
+        "You can accept all optional cookies, reject them, or choose analytics and marketing separately. Use the Cookie settings control in the footer to change or withdraw your choice at any time. See our Cookie Policy for details.",
+      ],
       list: [
-        "Improve website performance",
-        "Remember preferences",
-        "Analyze traffic",
-        "Enhance user experience",
+        "Necessary: stores your preferences and supports core site functions.",
+        "Analytics: optional Google Analytics, loaded only when enabled and configured.",
+        "Marketing: optional Meta Pixel, loaded only when enabled and configured.",
       ],
     },
     {
@@ -200,6 +198,47 @@ export const privacyPolicy: LegalDocument = {
         "Victoria Falls, Zimbabwe",
         "Email: reservations@theshrublodge.com",
         "Phone: +263 788 746 909",
+      ],
+    },
+  ],
+};
+
+export const cookiePolicy: LegalDocument = {
+  title: "Cookie Policy",
+  updated: "03/03/2026",
+  sections: [
+    {
+      heading: "1. What cookies are",
+      paragraphs: [
+        "Cookies are small text files stored by your browser. Similar technologies may store or read information in your browser.",
+        "This policy explains how The Shrub Lodge uses cookies on this website and how you can control optional categories.",
+      ],
+    },
+    {
+      heading: "2. Cookies we use",
+      paragraphs: [
+        "The site uses the shrublodge-cookie-consent cookie to remember your preference for 180 days. It stores whether analytics and marketing were allowed; necessary storage is always enabled so the site can remember your choice.",
+        "The private administrator dashboard uses separate httpOnly, Secure, SameSite=Strict session cookies. Those cookies are limited to the owner dashboard and are not used for advertising.",
+      ],
+    },
+    {
+      heading: "3. Optional analytics and marketing",
+      paragraphs: [
+        "Google Analytics and Meta Pixel are not loaded unless the corresponding optional category is enabled. These services are loaded only when the site owner has configured their public measurement identifiers.",
+        "If enabled, the providers may receive technical information such as your browser, device, pages visited, and network information. Their processing is governed by their own privacy policies.",
+      ],
+    },
+    {
+      heading: "4. Your choices",
+      paragraphs: [
+        "Choose Accept all, Reject non-essential, or Customize in the cookie banner. Necessary storage cannot be turned off because it remembers your selection. Use Cookie settings in the footer to reopen the controls, change your choice, or withdraw optional consent.",
+        "You may also clear cookies in your browser settings. Clearing the preference cookie will cause the banner to appear again.",
+      ],
+    },
+    {
+      heading: "5. Contact",
+      paragraphs: [
+        "For questions about cookies or privacy, contact The Shrub Lodge at reservations@theshrublodge.com.",
       ],
     },
   ],

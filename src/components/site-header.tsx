@@ -10,6 +10,13 @@ import { Logo } from "@/components/logo";
 import { SocialLinks } from "@/components/social-links";
 import { navigation, siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { NavRollingLink } from "@/components/nav-rolling-link";
+
+type SiteHeaderProps = {
+  siteName?: string;
+  logoUrl?: string;
+  socialLinks?: readonly { title: string; href: string }[];
+};
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -23,7 +30,11 @@ function isHomeHeader(pathname: string): boolean {
   return pathname === "/";
 }
 
-export function SiteHeader() {
+export function SiteHeader({
+  siteName = siteConfig.name,
+  logoUrl = "",
+  socialLinks = siteConfig.socialLinks,
+}: SiteHeaderProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolledState, setScrolledState] = useState(false);
@@ -105,16 +116,20 @@ export function SiteHeader() {
       )}
     >
       <Container className="flex h-20 items-center justify-between gap-4">
-        <Logo tone={scrolled ? "dark" : "light"} variant="mark" />
+        <Logo
+          tone={scrolled ? "dark" : "light"}
+          variant="mark"
+          siteName={siteName}
+          logoUrl={logoUrl}
+        />
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
           {navigation.map((item) =>
             item.children ? (
               <div key={item.href} className="group relative">
-                <Link
-                  href={item.href}
+                <div
                   className={cn(
-                    "flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "group/nav flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300",
                     scrolled
                       ? "text-forest-900 hover:bg-forest-900/5 hover:text-forest-950"
                       : "text-sand-100/90 hover:bg-white/5 hover:text-white",
@@ -124,15 +139,15 @@ export function SiteHeader() {
                         : "bg-white/10 text-white font-semibold"),
                   )}
                 >
-                  {item.title}
+                  <NavRollingLink href={item.href} label={item.title} isActive={isActive(pathname, item.href)} />
                   <ChevronDown
                     className={cn(
-                      "h-4 w-4 transition-transform group-hover:rotate-180",
+                      "h-4 w-4 transition-transform duration-300 group-hover/nav:rotate-180",
                       scrolled ? "text-forest-700" : "text-sand-200",
                     )}
                   />
-                </Link>
-                <div className="invisible absolute left-0 top-full z-50 w-80 translate-y-1 pt-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                </div>
+                <div className="invisible absolute left-0 top-full z-50 w-80 translate-y-2 pt-2 opacity-0 transition-all duration-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
                   <div className="overflow-hidden rounded-2xl border border-forest-100 bg-white p-2 shadow-xl">
                     {item.children.map((child) => (
                       <Link
@@ -151,11 +166,10 @@ export function SiteHeader() {
                 </div>
               </div>
             ) : (
-              <Link
+              <div
                 key={item.href}
-                href={item.href}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                  "rounded-full px-4 py-2 text-sm font-medium transition-all duration-300",
                   scrolled
                     ? "text-forest-900 hover:bg-forest-900/5 hover:text-forest-950"
                     : "text-sand-100/90 hover:bg-white/5 hover:text-white",
@@ -165,8 +179,8 @@ export function SiteHeader() {
                       : "bg-white/10 text-white font-semibold"),
                 )}
               >
-                {item.title}
-              </Link>
+                <NavRollingLink href={item.href} label={item.title} isActive={isActive(pathname, item.href)} />
+              </div>
             ),
           )}
         </nav>
@@ -175,6 +189,7 @@ export function SiteHeader() {
           <SocialLinks
             tone={scrolled ? "onLight" : "onDark"}
             className="mr-1 hidden xl:flex"
+            items={socialLinks}
           />
           <ButtonLink
             href={siteConfig.bookingHref}
@@ -215,7 +230,12 @@ export function SiteHeader() {
               scrolled ? "border-b border-sand-200" : "border-b border-forest-800",
             )}
           >
-            <Logo tone={scrolled ? "dark" : "light"} variant="mark" />
+            <Logo
+              tone={scrolled ? "dark" : "light"}
+              variant="mark"
+              siteName={siteName}
+              logoUrl={logoUrl}
+            />
           </div>
           {navigation.map((item) =>
             item.children ? (
@@ -299,6 +319,7 @@ export function SiteHeader() {
           <SocialLinks
             tone={scrolled ? "onLight" : "onDark"}
             className="mt-4 justify-center"
+            items={socialLinks}
           />
         </Container>
       </div>

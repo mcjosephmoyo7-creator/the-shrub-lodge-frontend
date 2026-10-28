@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ["192.168.1.247"],
   // Trim response headers and keep the served payload lean.
   poweredByHeader: false,
   compress: true,

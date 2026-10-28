@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 import { siteConfig } from "@/lib/site";
 
 const schema = z.object({
-  firstName: z.string().min(1, "Please enter your first name"),
-  lastName: z.string().min(1, "Please enter your last name"),
-  email: z.string().min(1, "Please enter your email").email("Enter a valid email address"),
-  message: z.string().min(1, "Please tell us a little about your plans"),
+  firstName: z.string().trim().min(1, "Please enter your first name").max(80),
+  lastName: z.string().trim().min(1, "Please enter your last name").max(80),
+  email: z.string().trim().min(1, "Please enter your email").email("Enter a valid email address").max(200),
+  message: z.string().trim().min(1, "Please tell us a little about your plans").max(4000),
   // Honeypot field: invisible to humans, bots tend to fill it in.
   company: z.string().max(0).optional(),
 });
@@ -23,7 +23,15 @@ type FormValues = z.infer<typeof schema>;
 const fieldClass =
   "w-full rounded-xl border border-sand-300 bg-white px-4 py-3 text-sm text-forest-900 placeholder:text-forest-800/40 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30";
 
-export function ContactForm() {
+export function ContactForm({
+  reservationsEmail = siteConfig.email.reservations,
+  reservationsPhone = siteConfig.phone.reservations,
+  reservationsPhoneDisplay = siteConfig.phoneDisplay.reservations,
+}: {
+  reservationsEmail?: string;
+  reservationsPhone?: string;
+  reservationsPhoneDisplay?: string;
+}) {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -43,49 +51,6 @@ export function ContactForm() {
       return;
     }
 
-    const web3formsKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
-    let web3formsError: string | null = null;
-
-    // Web3Forms blocks server-side requests (Cloudflare challenge), so when a
-    // key is configured we submit straight from the browser — its intended use.
-    if (web3formsKey) {
-      try {
-        const response = await fetch("https://api.web3forms.com/submit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            access_key: web3formsKey,
-            subject: `New website enquiry from ${values.firstName} ${values.lastName}`,
-            from_name: `${siteConfig.name} website`,
-            name: `${values.firstName} ${values.lastName}`,
-            email: values.email,
-            replyto: values.email,
-            message: values.message,
-            botcheck: false,
-          }),
-        });
-
-        const payload = (await response.json().catch(() => null)) as {
-          success?: boolean;
-          message?: string;
-        } | null;
-
-        if (response.ok && payload?.success) {
-          setSent(true);
-          reset();
-          return;
-        }
-
-        web3formsError = payload?.message ?? null;
-      } catch {
-        // Network problem — fall through and try our own endpoint.
-      }
-    }
-
-    // Fall back to our own endpoint (e.g. Resend is configured, or a retry).
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -107,14 +72,11 @@ export function ContactForm() {
       setError(
         payload?.detail ??
           payload?.error ??
-          web3formsError ??
           "Sorry, we couldn't send your message. Please email us directly instead.",
       );
-    } catch {
-      setError(
-        web3formsError ??
-          "Sorry, we couldn't reach our server. Please email us or call us directly.",
-      );
+    } catch (reason) {
+      console.error("[contact-form] Message submission failed:", reason);
+      setError("Sorry, we couldn't reach our server. Please email us or call us directly.");
     }
   }
 
@@ -216,14 +178,14 @@ export function ContactForm() {
           <span>
             {error}{" "}
             <a
-              href={`mailto:${siteConfig.email.reservations}`}
+              href={`mailto:${reservationsEmail}`}
               className="font-semibold underline underline-offset-2"
             >
-              {siteConfig.email.reservations}
+              {reservationsEmail}
             </a>{" "}
             or call{" "}
-            <a href={`tel:${siteConfig.phone.reservations}`} className="font-semibold underline underline-offset-2">
-              {siteConfig.phoneDisplay.reservations}
+            <a href={`tel:${reservationsPhone}`} className="font-semibold underline underline-offset-2">
+              {reservationsPhoneDisplay}
             </a>
             .
           </span>

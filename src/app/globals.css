@@ -112,6 +112,17 @@
   .photo-gallery-tile img {
     transition-duration: 0.01ms;
   }
+
+  .group\/nav-rolling:hover .group-hover\/nav-rolling\:-translate-y-full,
+  .group\/nav-rolling:focus-visible .group-hover\/nav-rolling\:-translate-y-full,
+  .group:hover .group-hover\:-translate-y-full {
+    transform: none;
+  }
+
+  .group\/nav-rolling .transition-transform,
+  .group .transition-transform {
+    transition-duration: 0.01ms;
+  }
 }
 
 /* Auto-scrolling photo wall ------------------------------------------------ */

@@ -7,9 +7,13 @@ export function Logo({
   className,
   tone = "light",
   variant = "full",
+  siteName = siteConfig.name,
+  logoUrl = "",
 }: {
   className?: string;
   tone?: "light" | "dark";
+  siteName?: string;
+  logoUrl?: string;
   /**
    * "full" is the logo with the wordmark beside it. "mark" is the logo image
    * on its own, sized up — used in the site header like other lodges do.
@@ -21,7 +25,7 @@ export function Logo({
   return (
     <Link
       href="/"
-      aria-label={`${siteConfig.name} home`}
+      aria-label={`${siteName} home`}
       className={cn("group flex items-center gap-3", className)}
     >
       <span
@@ -34,11 +38,12 @@ export function Logo({
         )}
       >
         <Image
-          src="/images/logo.png"
-          alt="The Shrub Lodge logo"
+          src={logoUrl || "/images/logo.png"}
+          alt={`${siteName} logo`}
           width={48}
           height={48}
           priority
+          unoptimized={Boolean(logoUrl)}
           className="h-full w-full object-contain"
         />
       </span>
@@ -49,7 +54,7 @@ export function Logo({
             tone === "light" ? "text-sand-50" : "text-forest-950",
           )}
         >
-          The Shrub Lodge
+          {siteName}
         </span>
         <span
           className={cn(

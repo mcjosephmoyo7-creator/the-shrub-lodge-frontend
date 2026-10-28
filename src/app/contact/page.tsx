@@ -6,6 +6,11 @@ import { Container } from "@/components/ui/container";
 import { Reveal } from "@/components/ui/reveal";
 import { IMAGES } from "@/lib/images";
 import { siteConfig } from "@/lib/site";
+import {
+  getContentSection,
+  getContentText,
+  getPublicSiteData,
+} from "@/lib/api/public-content";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -13,7 +18,25 @@ export const metadata: Metadata = {
     "Get in touch with The Shrub Lodge in Victoria Falls. Call, email or send us a message and our team will help plan your stay.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const site = await getPublicSiteData();
+  const contact = getContentSection(site, "contact");
+  const reservationsPhone = getContentText(
+    contact,
+    "reservationsPhone",
+    siteConfig.phoneDisplay.reservations,
+  );
+  const receptionPhone = getContentText(
+    contact,
+    "receptionPhone",
+    siteConfig.phoneDisplay.reception,
+  );
+  const reservationsEmail = getContentText(
+    contact,
+    "reservationsEmail",
+    siteConfig.email.reservations,
+  );
+
   return (
     <>
       <Hero
@@ -28,7 +51,7 @@ export default function ContactPage() {
           <div className="flex min-w-0 flex-col gap-5">
             <Reveal className="min-w-0">
               <a
-                href={`tel:${siteConfig.phone.reservations}`}
+                href={`tel:${reservationsPhone.replace(/[^\d+]/g, "")}`}
                 className="flex min-w-0 items-start gap-4 rounded-3xl border border-sand-200 bg-white p-5 shadow-sm transition-colors hover:border-gold-300 sm:p-6"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-forest-900 text-gold-300">
@@ -39,7 +62,7 @@ export default function ContactPage() {
                     Phone
                   </span>
                   <span className="break-words font-medium text-forest-900">
-                    {siteConfig.phoneDisplay.reservations}
+                    {reservationsPhone}
                   </span>
                 </span>
               </a>
@@ -47,7 +70,7 @@ export default function ContactPage() {
 
             <Reveal delay={80} className="min-w-0">
               <a
-                href={`mailto:${siteConfig.email.reservations}`}
+                href={`mailto:${reservationsEmail}`}
                 className="flex min-w-0 items-start gap-4 rounded-3xl border border-sand-200 bg-white p-5 shadow-sm transition-colors hover:border-gold-300 sm:p-6"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-forest-900 text-gold-300">
@@ -58,7 +81,7 @@ export default function ContactPage() {
                     Email
                   </span>
                   <span className="break-words font-medium text-forest-900">
-                    {siteConfig.email.reservations}
+                    {reservationsEmail}
                   </span>
                 </span>
               </a>
@@ -74,7 +97,7 @@ export default function ContactPage() {
                     Address
                   </span>
                   <span className="break-words font-medium text-forest-900">
-                    {siteConfig.address.full}
+                    {getContentText(contact, "address", siteConfig.address.full)}
                   </span>
                 </span>
               </div>
@@ -89,9 +112,15 @@ export default function ContactPage() {
                   <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-600">
                     Opening Hours
                   </span>
-                  <span className="break-words">Front Desk: {siteConfig.hours.frontDesk}</span>
-                  <span className="break-words">Check-in: {siteConfig.hours.checkIn}</span>
-                  <span className="break-words">Check-out: {siteConfig.hours.checkOut}</span>
+                  <span className="break-words">
+                    Front Desk: {getContentText(contact, "frontDeskHours", siteConfig.hours.frontDesk)}
+                  </span>
+                  <span className="break-words">
+                    Check-in: {getContentText(contact, "checkIn", siteConfig.hours.checkIn)}
+                  </span>
+                  <span className="break-words">
+                    Check-out: {getContentText(contact, "checkOut", siteConfig.hours.checkOut)}
+                  </span>
                 </div>
               </div>
             </Reveal>
@@ -107,7 +136,11 @@ export default function ContactPage() {
                 can.
               </p>
               <div className="mt-6">
-                <ContactForm />
+                <ContactForm
+                  reservationsEmail={reservationsEmail}
+                  reservationsPhone={reservationsPhone.replace(/[^\d+]/g, "")}
+                  reservationsPhoneDisplay={reservationsPhone}
+                />
               </div>
             </div>
           </Reveal>

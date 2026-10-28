@@ -325,7 +325,7 @@ export function offlineAnswer(question: string, history: PriorMessage[] = []): s
   }
 
   if (!text) {
-    return "What would you like to know? I can help with activities and prices, things to do in Victoria Falls, rooms, transfers, the restaurant, or how to book.";
+    return "It looks like you might have typed that by accident! How can I help you today?";
   }
 
   if (/^(hi|hey|hello|good (morning|afternoon|evening)|howzit|greetings|hiya)\b/.test(text)) {
@@ -510,11 +510,7 @@ export function offlineAnswer(question: string, history: PriorMessage[] = []): s
     ].join("\n");
   }
 
-  return [
-    "I'm not sure I have that on hand, and I'd rather not guess.",
-    `I can help with: activities and prices, activity recommendations, rooms and rates, transfers, the restaurant, or contact details.`,
-    `For anything else, our team can help directly — ${siteConfig.email.reservations} or ${siteConfig.phoneDisplay.reservations}.`,
-  ].join("\n");
+  return "It looks like you might have typed that by accident! How can I help you today?";
 }
 
 function categoriesOverview(): string[] {

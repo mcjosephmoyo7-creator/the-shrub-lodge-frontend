@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { siteConfig } from "@/lib/site";
+import { getBackendUrl } from "@/lib/api/backend-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,16 +9,13 @@ export const dynamic = "force-dynamic";
 /**
  * Contact form endpoint.
  *
- * Delivery is configured with environment variables (see .env.example). Two
- * providers are supported and the first one that is configured is used:
+ * Messages are first stored in the CMS through the server-to-server proxy.
+ * Optional email notifications can also be sent through one of these providers:
  *
- *  1. Web3Forms  — set WEB3FORMS_ACCESS_KEY. The access key is tied to the
- *     destination inbox, so submissions arrive there directly. No domain needed.
- *  2. Resend     — set RESEND_API_KEY. Sends to CONTACT_TO_EMAIL (defaults to the
- *     lodge reservations address).
+ *  1. Web3Forms  — set WEB3FORMS_ACCESS_KEY.
+ *  2. Resend     — set RESEND_API_KEY and CONTACT_TO_EMAIL.
  *
- * When neither is configured the endpoint replies 503 with `not_configured` so
- * the form can show the guest our phone/email instead of pretending it sent.
+ * Email is optional because the dashboard stores every accepted enquiry.
  */
 
 const schema = z.object({
@@ -31,6 +29,7 @@ const schema = z.object({
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 5;
+const MAX_BODY_BYTES = 16 * 1024;
 const recentRequests = new Map<string, number[]>();
 
 function isRateLimited(key: string): boolean {
@@ -114,7 +113,8 @@ async function sendWithWeb3Forms(
     return payload.success;
   }
 
-  return true;
+  console.error("[contact] Web3Forms returned an invalid response.");
+  return false;
 }
 
 async function sendWithResend(
@@ -151,11 +151,20 @@ export async function POST(request: Request) {
     );
   }
 
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Your message is too large." }, { status: 413 });
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  if (new TextEncoder().encode(JSON.stringify(payload)).byteLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Your message is too large." }, { status: 413 });
   }
 
   const parsed = schema.safeParse(payload);
@@ -172,41 +181,82 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  const backendUrl = getBackendUrl();
+  const proxySecret = process.env.CONTACT_API_PROXY_SECRET?.trim();
+  if (!backendUrl || !proxySecret) {
+    console.error("[contact] Backend URL or contact proxy secret is not configured.");
+    return NextResponse.json(
+      { error: "Message storage is temporarily unavailable. Please contact us directly." },
+      { status: 503 },
+    );
+  }
+
+  let storedMessage: { id: string } | null = null;
+  try {
+    const response = await fetch(
+      `${backendUrl}/api/public/contact`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-contact-proxy-secret": proxySecret,
+        },
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          message: data.message,
+        }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      console.error("[contact] Message storage failed:", response.status, body);
+      return NextResponse.json(
+        { error: "We couldn't store your message. Please contact us directly." },
+        { status: response.status === 400 ? 400 : 503 },
+      );
+    }
+
+    const result = (await response.json()) as {
+      message?: { id?: string };
+    };
+    if (!result.message?.id) {
+      console.error("[contact] Storage service returned no message identifier.");
+      return NextResponse.json(
+        { error: "Message storage is temporarily unavailable. Please contact us directly." },
+        { status: 503 },
+      );
+    }
+    storedMessage = { id: result.message.id };
+  } catch (reason) {
+    console.error("[contact] Message storage request failed:", reason);
+    return NextResponse.json(
+      { error: "We couldn't reach our message service. Please contact us directly." },
+      { status: 503 },
+    );
+  }
+
   const web3formsKey = process.env.WEB3FORMS_ACCESS_KEY?.trim();
   const resendKey = process.env.RESEND_API_KEY?.trim();
   const to = process.env.CONTACT_TO_EMAIL?.trim() || siteConfig.email.reservations;
+  let emailSent = false;
 
   try {
     if (web3formsKey) {
       const { subject } = buildEmail(data);
-      const ok = await sendWithWeb3Forms(web3formsKey, data, subject);
-      if (ok) return NextResponse.json({ ok: true });
-      return NextResponse.json(
-        { error: "We couldn't send your message. Please email us directly." },
-        { status: 502 },
-      );
+      emailSent = await sendWithWeb3Forms(web3formsKey, data, subject);
+    } else if (resendKey) {
+      emailSent = await sendWithResend(resendKey, to, data);
     }
-
-    if (resendKey) {
-      const ok = await sendWithResend(resendKey, to, data);
-      if (ok) return NextResponse.json({ ok: true });
-      return NextResponse.json(
-        { error: "We couldn't send your message. Please email us directly." },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: "not_configured",
-        detail: `Email delivery is not set up yet. Please email us at ${siteConfig.email.reservations} or call ${siteConfig.phoneDisplay.reservations}.`,
-      },
-      { status: 503 },
-    );
-  } catch {
-    return NextResponse.json(
-      { error: "Something went wrong sending your message. Please email us directly." },
-      { status: 502 },
-    );
+  } catch (reason) {
+    console.error("[contact] Email notification failed:", reason);
   }
+
+  if (!emailSent && (web3formsKey || resendKey)) {
+    console.error("[contact] Message stored without email notification:", storedMessage.id);
+  }
+  return NextResponse.json({ ok: true, emailSent });
 }

@@ -80,6 +80,7 @@ export const navigation: NavItem[] = [
 
 export const footerLinks = [
   { title: "Privacy Policy", href: "/privacy-policy" },
+  { title: "Cookie Policy", href: "/cookie-policy" },
   { title: "Terms and Conditions", href: "/terms-and-conditions" },
   { title: "Contact", href: "/contact" },
 ];

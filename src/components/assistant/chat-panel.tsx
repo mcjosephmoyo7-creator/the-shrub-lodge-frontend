@@ -32,6 +32,7 @@ const SUGGESTIONS = [
 const STORAGE_KEY = "shrub-assist-conversation-v1";
 const MAX_STORED_MESSAGES = 40;
 const MAX_SENT_MESSAGES = 30;
+const MIN_RESPONSE_TIME_MS = 1_500;
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const tokens = text.split(
@@ -224,6 +225,7 @@ export function ChatPanel({
     const trimmed = text.trim();
     if (!trimmed || typing) return;
 
+    const requestStartedAt = Date.now();
     setError(null);
     setDraft("");
 
@@ -296,6 +298,13 @@ export function ChatPanel({
         return;
       }
 
+      const remainingDelay =
+        MIN_RESPONSE_TIME_MS - (Date.now() - requestStartedAt);
+      if (remainingDelay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingDelay));
+      }
+      if (controller.signal.aborted) return;
+
       setMessages((current) => [
         ...current,
         { id: nextId.current++, role: "assistant", content: payload.reply as string },
@@ -322,7 +331,7 @@ export function ChatPanel({
       role="dialog"
       aria-label="Shrub Assist — virtual concierge"
       className={cn(
-        "fixed bottom-24 right-4 left-4 z-[60] flex max-h-[70vh] w-auto flex-col overflow-hidden rounded-3xl border border-sand-200 bg-sand-50 shadow-2xl shadow-forest-950/30 transition-all duration-300 sm:left-auto sm:right-6 sm:w-[24rem]",
+        "fixed bottom-24 right-4 left-4 z-[60] flex max-h-[70vh] w-auto flex-col overflow-hidden rounded-3xl border border-sand-200 bg-sand-50 font-sans shadow-2xl shadow-forest-950/30 transition-all duration-300 sm:left-auto sm:right-6 sm:w-[24rem]",
         open
           ? "pointer-events-auto translate-y-0 opacity-100"
           : "pointer-events-none translate-y-4 opacity-0",

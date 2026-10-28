@@ -1,7 +1,6 @@
 import { rooms as fallbackRooms, type Room } from "@/lib/content/rooms";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "");
-
 // Render's free tier sleeps after a period of inactivity and can take
 // 30-60 seconds to wake up. Wait long enough for the cold start, otherwise
 // builds and revalidations silently fall back to the bundled room list.

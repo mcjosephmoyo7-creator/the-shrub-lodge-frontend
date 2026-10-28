@@ -8,6 +8,11 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
 import { IMAGES, wix } from "@/lib/images";
 import { siteConfig } from "@/lib/site";
+import {
+  getContentSection,
+  getContentText,
+  getPublicSiteData,
+} from "@/lib/api/public-content";
 
 export const metadata: Metadata = {
   title: "About",
@@ -15,38 +20,35 @@ export const metadata: Metadata = {
     "The Shrub Lodge was founded with a vision to create a home-away-from-home in Victoria Falls, rooted in a family-run tradition of hospitality.",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const site = await getPublicSiteData();
+  const about = getContentSection(site, "about");
+  const paragraphs = getContentText(
+    about,
+    "body",
+    "The Shrub Lodge was founded with a vision to create a home-away-from-home in Victoria Falls. Our family-run 3-star lodge blends relaxed luxury with heartfelt hospitality, offering a peaceful retreat just minutes away from the majestic Victoria Falls.\n\nWe pride ourselves on warm, personalized service and a genuine connection with each of our guests. From comfortable accommodations and delicious home-cooked meals to expertly curated adventure experiences, every detail is designed to make your stay unforgettable.\n\nMore than a place to rest, The Shrub Lodge is your gateway to the magic of Zimbabwe — where comfort meets wonder, and you arrive as a guest but leave as family.",
+  )
+    .split(/\n\s*\n/)
+    .filter(Boolean);
+
   return (
     <>
       <Hero
         eyebrow="About Us"
-        title="Where Comfort Meets the Wonder of the Falls"
+        title={getContentText(
+          about,
+          "title",
+          "Where Comfort Meets the Wonder of the Falls",
+        )}
         image={IMAGES.aboutHero}
       />
 
       <section className="bg-white py-20 sm:py-24">
         <Container className="grid items-start gap-12 lg:grid-cols-[1.2fr_1fr]">
           <Reveal className="flex flex-col gap-6 text-base leading-relaxed text-forest-800/80">
-            <p>
-              The Shrub Lodge was founded with a vision to create a
-              home-away-from-home in Victoria Falls, one of the world's most
-              breathtaking destinations. Rooted in a family-run tradition of
-              hospitality, the lodge began as a small, welcoming guesthouse and
-              has since grown into a charming retreat where travelers from
-              across the globe gather to rest, connect, and experience the
-              beauty of Zimbabwe.
-            </p>
-            <p>
-              Our name reflects our philosophy: just like a shrub that thrives
-              with care, we believe every guest deserves thoughtful attention,
-              comfort, and the right environment to flourish during their stay.
-              We are more than a lodge, we are a team of passionate hosts
-              dedicated to delivering genuine warmth and attentive service.
-              Whether you are here for adventure, business, or relaxation, our
-              goal is to make your experience seamless and memorable. We pride
-              ourselves on blending professional service with the personal
-              touch of a family-run business.
-            </p>
+            {paragraphs.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
             <ButtonLink href={siteConfig.bookingHref} className="self-start mt-2">
               Book Now
             </ButtonLink>
@@ -81,8 +83,16 @@ export default function AboutPage() {
             <SectionHeading
               align="left"
               eyebrow="Our Promise"
-              title="You arrive as a guest, you leave as family"
-              intro="Victoria Falls is a once-in-a-lifetime destination, and we're here to ensure that your stay is every bit as unforgettable as the Falls themselves. At The Shrub Lodge, you arrive as a guest but leave as part of our extended family."
+              title={getContentText(
+                about,
+                "promiseTitle",
+                "You arrive as a guest, you leave as family",
+              )}
+              intro={getContentText(
+                about,
+                "promiseBody",
+                "Victoria Falls is a once-in-a-lifetime destination, and we're here to ensure that your stay is every bit as unforgettable as the Falls themselves. At The Shrub Lodge, you arrive as a guest but leave as part of our extended family.",
+              )}
             />
           </Reveal>
           <Reveal delay={120}>
