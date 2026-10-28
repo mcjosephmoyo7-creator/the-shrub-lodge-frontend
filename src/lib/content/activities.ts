@@ -617,6 +617,6 @@ export const activityOverview: OverviewCard[] = [
     blurb:
       "Seamless airport transfers and transport services to ensure a smooth, stress-free travel experience from arrival to departure.",
     href: "/transfers",
-    image: IMAGES.transfers,
+    image: IMAGES.transfersHero,
   },
 ];
