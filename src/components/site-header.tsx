@@ -100,7 +100,7 @@ export function SiteHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 border-b transition-[transform,background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-out motion-reduce:transition-none",
+        "sticky top-0 z-50 border-b-0 bg-transparent transition-[transform,background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-out motion-reduce:transition-none lg:border-b",
         hidden && !open ? "-translate-y-full" : "translate-y-0",
         // Pull the hero photo up underneath the header so the header floats
         // over the image, the way Insika Lodge's header does. `bg-clip-padding`
@@ -109,21 +109,37 @@ export function SiteHeader({
         // dark hairline seam right above the hero.
         overHero && (scrolled ? "-mb-[5.0625rem]" : "-mb-[5rem]"),
         scrolled
-          ? "border-sand-300/70 bg-white/85 shadow-md shadow-forest-950/5 backdrop-blur-md"
+          ? "lg:border-sand-300/70 lg:bg-white/85 lg:shadow-md lg:shadow-forest-950/5 lg:backdrop-blur-md"
           : overHero
-            ? "border-b-0 bg-clip-padding bg-gradient-to-b from-black/30 via-black/10 to-transparent"
-            : "border-transparent bg-forest-950/80 backdrop-blur-md",
+            ? "lg:border-b-0 lg:bg-clip-padding lg:bg-gradient-to-b lg:from-black/30 lg:via-black/10 lg:to-transparent"
+            : "lg:border-transparent lg:bg-forest-950/80 lg:backdrop-blur-md",
       )}
     >
-      <Container className="flex h-20 items-center justify-between gap-4">
-        <Logo
-          tone={scrolled ? "dark" : "light"}
-          variant="mark"
-          siteName={siteName}
-          logoUrl={logoUrl}
-        />
+      <Container className="mx-4 flex h-20 w-auto max-w-none items-center justify-between gap-4 px-0 sm:px-0 lg:mx-auto lg:w-full lg:max-w-content lg:px-8">
+        <div
+          className={cn(
+            "flex h-[4.5rem] min-w-0 flex-1 items-center justify-between rounded-full px-3 transition-[background-color,box-shadow,backdrop-filter] duration-300 lg:contents lg:bg-transparent lg:px-0 lg:shadow-none lg:backdrop-blur-none",
+            scrolled
+              ? "bg-white/95 shadow-sm shadow-black/10 backdrop-blur-md"
+              : "bg-transparent shadow-none backdrop-blur-none",
+          )}
+        >
+          <Logo
+            tone={scrolled ? "dark" : "light"}
+            variant="mark"
+            siteName={siteName}
+            logoUrl={logoUrl}
+            className="hidden lg:flex"
+          />
+          <Logo
+            tone={scrolled ? "dark" : "light"}
+            variant="mark"
+            siteName={siteName}
+            logoUrl={logoUrl}
+            className="lg:hidden"
+          />
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
           {navigation.map((item) =>
             item.children ? (
               <div key={item.href} className="group relative">
@@ -183,72 +199,49 @@ export function SiteHeader({
               </div>
             ),
           )}
-        </nav>
+          </nav>
 
-        <div className="flex items-center gap-3">
-          <SocialLinks
-            tone={scrolled ? "onLight" : "onDark"}
-            className="mr-1 hidden xl:flex"
-            items={socialLinks}
-          />
-          <ButtonLink
-            href={siteConfig.bookingHref}
-            className="hidden px-5 py-2.5 sm:inline-flex"
-          >
-            Book Now
-          </ButtonLink>
-          <button
-            type="button"
-            onClick={() => setOpen((value) => !value)}
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            className={cn(
-              "inline-flex h-11 w-11 items-center justify-center rounded-full border transition-colors lg:hidden",
-              scrolled
-                ? "border-forest-900/20 text-forest-900 hover:bg-forest-900/5"
-                : "border-white/15 text-sand-50 hover:bg-white/10",
-            )}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="flex items-center gap-3">
+            <SocialLinks
+              tone={scrolled ? "onLight" : "onDark"}
+              className="mr-1 hidden xl:flex"
+              items={socialLinks}
+            />
+            <ButtonLink
+              href={siteConfig.bookingHref}
+              className="hidden px-5 py-2.5 lg:inline-flex"
+            >
+              Book Now
+            </ButtonLink>
+            <button
+              type="button"
+              onClick={() => setOpen((value) => !value)}
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-forest-950 shadow-sm transition-colors hover:bg-sand-50 lg:hidden"
+            >
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </Container>
 
       <div
         className={cn(
-          "overflow-hidden transition-[max-height,opacity] duration-300 lg:hidden",
-          scrolled
-            ? "border-t border-sand-200 bg-white/95 text-forest-900 backdrop-blur-md shadow-lg"
-            : "border-t border-forest-800 bg-forest-950 text-sand-100",
-          open ? "max-h-[85vh] overflow-y-auto opacity-100" : "max-h-0 opacity-0",
+          "mx-4 overflow-hidden rounded-3xl border border-sand-200 bg-white/95 text-forest-900 shadow-lg backdrop-blur-md transition-[max-height,opacity,margin] duration-300 lg:hidden",
+          open
+            ? "mt-2 max-h-[85vh] overflow-y-auto opacity-100"
+            : "mt-0 max-h-0 opacity-0",
         )}
       >
         <Container className="flex flex-col gap-1 py-4">
-          <div
-            className={cn(
-              "mb-2 px-2 pb-3",
-              scrolled ? "border-b border-sand-200" : "border-b border-forest-800",
-            )}
-          >
-            <Logo
-              tone={scrolled ? "dark" : "light"}
-              variant="mark"
-              siteName={siteName}
-              logoUrl={logoUrl}
-            />
-          </div>
           {navigation.map((item) =>
             item.children ? (
               <div key={item.href} className="flex flex-col">
                 <button
                   type="button"
                   onClick={() => setMobileActivitiesOpen((value) => !value)}
-                  className={cn(
-                    "flex items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors",
-                    scrolled
-                      ? "text-forest-900 hover:bg-forest-900/5"
-                      : "text-sand-100 hover:bg-white/5",
-                  )}
+                  className="flex items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium text-forest-900 transition-colors hover:bg-forest-900/5"
                 >
                   {item.title}
                   <ChevronDown
@@ -265,19 +258,11 @@ export function SiteHeader({
                   )}
                 >
                   <div
-                    className={cn(
-                      "ml-2 flex flex-col gap-0.5 border-l pb-1 pl-3",
-                      scrolled ? "border-sand-300" : "border-forest-800",
-                    )}
+                    className="ml-2 flex flex-col gap-0.5 border-l border-sand-300 pb-1 pl-3"
                   >
                     <Link
                       href={item.href}
-                      className={cn(
-                        "rounded-lg px-3 py-2 text-sm transition-colors",
-                        scrolled
-                          ? "text-forest-800 hover:bg-sand-100 hover:text-forest-950"
-                          : "text-sand-100/80 hover:bg-white/5 hover:text-white",
-                      )}
+                      className="rounded-lg px-3 py-2 text-sm text-forest-800 transition-colors hover:bg-sand-100 hover:text-forest-950"
                     >
                       All Activities
                     </Link>
@@ -285,12 +270,7 @@ export function SiteHeader({
                       <Link
                         key={child.href}
                         href={child.href}
-                        className={cn(
-                          "rounded-lg px-3 py-2 text-sm transition-colors",
-                          scrolled
-                            ? "text-forest-800 hover:bg-sand-100 hover:text-forest-950"
-                            : "text-sand-100/80 hover:bg-white/5 hover:text-white",
-                        )}
+                        className="rounded-lg px-3 py-2 text-sm text-forest-800 transition-colors hover:bg-sand-100 hover:text-forest-950"
                       >
                         {child.title}
                       </Link>
@@ -302,12 +282,7 @@ export function SiteHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  "rounded-xl px-4 py-3 text-sm font-medium transition-colors",
-                  scrolled
-                    ? "text-forest-900 hover:bg-forest-900/5"
-                    : "text-sand-100 hover:bg-white/5",
-                )}
+                className="rounded-xl px-4 py-3 text-sm font-medium text-forest-900 transition-colors hover:bg-forest-900/5"
               >
                 {item.title}
               </Link>
@@ -317,7 +292,7 @@ export function SiteHeader({
             Book Now
           </ButtonLink>
           <SocialLinks
-            tone={scrolled ? "onLight" : "onDark"}
+            tone="onLight"
             className="mt-4 justify-center"
             items={socialLinks}
           />
