@@ -325,7 +325,11 @@ export function offlineAnswer(question: string, history: PriorMessage[] = []): s
   }
 
   if (!text) {
-    return "It looks like you might have typed that by accident! How can I help you today?";
+    return [
+      "I can help with questions about The Shrub Lodge, including rooms, activities, transfers, the restaurant and bookings.",
+      `For lodge information I haven't listed, contact reservations at ${siteConfig.phoneDisplay.reservations} or ${siteConfig.email.reservations}.`,
+      "For general questions, please try again when the online assistant is available.",
+    ].join("\n");
   }
 
   if (/^(hi|hey|hello|good (morning|afternoon|evening)|howzit|greetings|hiya)\b/.test(text)) {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Loader2, RotateCcw, Send, X } from "lucide-react";
+import { RotateCcw, Send, Square, X } from "lucide-react";
 import { siteConfig } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,6 @@ const SUGGESTIONS = [
 const STORAGE_KEY = "shrub-assist-conversation-v1";
 const MAX_STORED_MESSAGES = 40;
 const MAX_SENT_MESSAGES = 30;
-const MIN_RESPONSE_TIME_MS = 1_500;
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const tokens = text.split(
@@ -86,31 +85,130 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 }
 
 function renderMessage(content: string): ReactNode {
-  return content.split("\n").map((line, index) => {
+  const lines = content.split("\n");
+  const nodes: ReactNode[] = [];
+
+  const tableCells = (line: string) =>
+    line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+  const isTableSeparator = (line: string) =>
+    tableCells(line).every((cell) => /^:?-{3,}:?$/.test(cell));
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
     const key = `line-${index}`;
     const trimmed = line.trim();
 
-    if (!trimmed) return <span key={key} className="block h-2" aria-hidden="true" />;
+    if (trimmed.startsWith("```")) {
+      const codeLines: string[] = [];
+      index += 1;
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      nodes.push(
+        <pre
+          key={key}
+          className="overflow-x-auto rounded-lg bg-forest-950 p-3 text-xs text-sand-50"
+        >
+          <code>{codeLines.join("\n")}</code>
+        </pre>,
+      );
+      continue;
+    }
+
+    if (
+      trimmed.includes("|") &&
+      index + 1 < lines.length &&
+      lines[index + 1].includes("|") &&
+      isTableSeparator(lines[index + 1])
+    ) {
+      const headers = tableCells(trimmed);
+      const rows: string[][] = [];
+      index += 2;
+      while (index < lines.length && lines[index].includes("|")) {
+        rows.push(tableCells(lines[index]));
+        index += 1;
+      }
+      index -= 1;
+      nodes.push(
+        <div key={key} className="overflow-x-auto">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead>
+              <tr>
+                {headers.map((cell, cellIndex) => (
+                  <th
+                    key={`header-${cellIndex}`}
+                    className="border-b border-sand-300 px-2 py-1.5 font-semibold"
+                  >
+                    {renderInline(cell, `${key}-header-${cellIndex}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIndex) => (
+                <tr key={`row-${rowIndex}`}>
+                  {headers.map((_, cellIndex) => (
+                    <td
+                      key={`cell-${cellIndex}`}
+                      className="border-b border-sand-200 px-2 py-1.5 align-top"
+                    >
+                      {renderInline(row[cellIndex] ?? "", `${key}-row-${rowIndex}-${cellIndex}`)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      continue;
+    }
+
+    if (!trimmed) {
+      nodes.push(<span key={key} className="block h-2" aria-hidden="true" />);
+      continue;
+    }
+
+    const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      const headingContent = renderInline(heading[2], key);
+      nodes.push(
+        heading[1].length === 1 ? (
+          <strong key={key} className="block font-display text-base text-forest-950">
+            {headingContent}
+          </strong>
+        ) : (
+          <strong key={key} className="block font-semibold text-forest-950">
+            {headingContent}
+          </strong>
+        ),
+      );
+      continue;
+    }
 
     const isBullet = /^[-•*]\s+/.test(trimmed);
     const text = isBullet ? trimmed.replace(/^[-•*]\s+/, "") : trimmed;
     const inline = renderInline(text, key);
 
     if (isBullet) {
-      return (
+      nodes.push(
         <span key={key} className="flex gap-2">
           <span aria-hidden="true" className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-gold-500" />
           <span className="min-w-0">{inline}</span>
-        </span>
+        </span>,
       );
+      continue;
     }
 
-    return (
+    nodes.push(
       <span key={key} className="block">
         {inline}
-      </span>
+      </span>,
     );
-  });
+  }
+
+  return nodes;
 }
 
 /**
@@ -130,11 +228,16 @@ export function ChatPanel({
   const [typing, setTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
+  const [retryRequest, setRetryRequest] = useState<{
+    prompt: string;
+    assistantId: number;
+  } | null>(null);
 
   const nextId = useRef(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const inFlight = useRef<AbortController | null>(null);
+  const activeAssistantId = useRef<number | null>(null);
 
   // Restore any earlier conversation from this browser (once, after mount so
   // server rendering stays safe).
@@ -193,8 +296,10 @@ export function ChatPanel({
   function startOver() {
     inFlight.current?.abort();
     inFlight.current = null;
+    activeAssistantId.current = null;
     setTyping(false);
     setError(null);
+    setRetryRequest(null);
     setMessages([GREETING]);
     nextId.current = 1;
     try {
@@ -221,104 +326,154 @@ export function ChatPanel({
 
   useEffect(() => () => inFlight.current?.abort(), []);
 
-  async function send(text: string) {
+  async function send(
+    text: string,
+    appendUserMessage = true,
+    failedAssistantId?: number,
+  ) {
     const trimmed = text.trim();
     if (!trimmed || typing) return;
 
-    const requestStartedAt = Date.now();
+    const abandonedAssistantId = failedAssistantId ?? retryRequest?.assistantId;
+    const priorMessages =
+      abandonedAssistantId === undefined
+        ? messages
+        : messages.filter((message) => message.id !== abandonedAssistantId);
     setError(null);
+    setRetryRequest(null);
     setDraft("");
 
-    const userMessage: ChatMessage = {
-      id: nextId.current++,
-      role: "user",
-      content: trimmed,
-    };
-    const history = [...messages, userMessage];
+    const userMessage: ChatMessage | null = appendUserMessage
+      ? { id: nextId.current++, role: "user", content: trimmed }
+      : null;
+    const history = userMessage ? [...priorMessages, userMessage] : priorMessages;
     setMessages(history);
     setTyping(true);
 
     inFlight.current?.abort();
     const controller = new AbortController();
     inFlight.current = controller;
+    const assistantId = nextId.current++;
+    activeAssistantId.current = assistantId;
 
     try {
-      const request = async () => {
-        return fetch("/api/assistant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: history
-              .slice(-MAX_SENT_MESSAGES)
-              .map(({ role, content }) => ({ role, content })),
-          }),
-          signal: controller.signal,
-        });
-      };
-
-      let response = await request().catch(() => null);
-      if (!response) {
-        if (!controller.signal.aborted) {
-          await new Promise((resolve) => setTimeout(resolve, 700));
-          response = await request().catch(() => null);
-        }
-        if (!response) {
-          if (!controller.signal.aborted) {
-            setError("Sorry, I couldn't get an answer just now. Please try again, or contact us directly.");
-          }
-          return;
-        }
-      }
-
-      let payload = (await response.json().catch(() => null)) as {
-        reply?: string;
-        error?: string;
-      } | null;
-
+      const response = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: history
+            .slice(-MAX_SENT_MESSAGES)
+            .map(({ role, content }) => ({ role, content })),
+        }),
+        signal: controller.signal,
+      });
       if (!response.ok) {
-        const infraFailure = !payload?.error && (response.status === 404 || response.status >= 500);
-        if (infraFailure && !controller.signal.aborted) {
-          await new Promise((resolve) => setTimeout(resolve, 700));
-          const retryResponse = await request().catch(() => null);
-          if (retryResponse) {
-            response = retryResponse;
-            payload = (await response.json().catch(() => null)) as {
-              reply?: string;
-              error?: string;
-            } | null;
-          }
-        }
-      }
-
-      if (!response.ok || !payload?.reply) {
-        setError(
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
           payload?.error ??
             "Sorry, I couldn't get an answer just now. Please try again, or contact us directly.",
         );
-        return;
       }
 
-      const remainingDelay =
-        MIN_RESPONSE_TIME_MS - (Date.now() - requestStartedAt);
-      if (remainingDelay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingDelay));
+      if (!response.body) {
+        throw new Error("The response stream is unavailable. Please try again.");
       }
-      if (controller.signal.aborted) return;
 
-      setMessages((current) => [
-        ...current,
-        { id: nextId.current++, role: "assistant", content: payload.reply as string },
-      ]);
-    } catch {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let answer = "";
+      let completed = false;
+
+      const consumeEvent = (frame: string) => {
+        const data = frame
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trim())
+          .join("\n");
+        if (!data) return;
+
+        const event = JSON.parse(data) as {
+          type?: string;
+          text?: string;
+          message?: string;
+        };
+        if (event.type === "delta" && event.text) {
+          answer += event.text;
+          setMessages((current) => {
+            const existing = current.some((message) => message.id === assistantId);
+            const assistantMessage: ChatMessage = {
+              id: assistantId,
+              role: "assistant",
+              content: answer,
+            };
+            return existing
+              ? current.map((message) =>
+                  message.id === assistantId ? assistantMessage : message,
+                )
+              : [...current, assistantMessage];
+          });
+        } else if (event.type === "done") {
+          completed = true;
+        } else if (event.type === "error") {
+          throw new Error(event.message ?? "The response was interrupted. Please try again.");
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let boundary = buffer.search(/\r?\n\r?\n/);
+        while (boundary !== -1) {
+          const frame = buffer.slice(0, boundary);
+          const separator = buffer.match(/\r?\n\r?\n/);
+          buffer = buffer.slice(boundary + (separator?.[0].length ?? 2));
+          consumeEvent(frame);
+          boundary = buffer.search(/\r?\n\r?\n/);
+        }
+      }
+      buffer += decoder.decode();
+      if (buffer.trim()) consumeEvent(buffer);
+      if (!completed) {
+        throw new Error(
+          answer
+            ? "The response was interrupted. Please try again."
+            : "No answer was received. Please try again.",
+        );
+      }
+    } catch (caught) {
       if (!controller.signal.aborted) {
-        setError("Sorry, I couldn't get an answer just now. Please try again in a moment.");
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Sorry, I couldn't get an answer just now. Please try again in a moment.",
+        );
+        setRetryRequest({ prompt: trimmed, assistantId });
       }
     } finally {
       if (inFlight.current === controller) {
         inFlight.current = null;
+        activeAssistantId.current = null;
         setTyping(false);
       }
     }
+  }
+
+  function stopGeneration() {
+    const controller = inFlight.current;
+    if (!controller) return;
+    controller.abort();
+    inFlight.current = null;
+    setTyping(false);
+    setError("Response stopped. You can try again.");
+    setRetryRequest({
+      prompt: [...messages].reverse().find((message) => message.role === "user")?.content ?? "",
+      assistantId: activeAssistantId.current ?? -1,
+    });
+    activeAssistantId.current = null;
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -411,6 +566,21 @@ export function ChatPanel({
         {error ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
             {error}
+            {retryRequest ? (
+              <button
+                type="button"
+                onClick={() =>
+                  void send(
+                    retryRequest.prompt,
+                    false,
+                    retryRequest.assistantId,
+                  )
+                }
+                className="ml-2 font-semibold underline underline-offset-2"
+              >
+                Try again
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -450,18 +620,26 @@ export function ChatPanel({
           autoComplete="off"
           className="max-h-32 min-w-0 flex-1 resize-none rounded-2xl border border-sand-300 bg-sand-50 px-4 py-2.5 text-sm text-forest-900 placeholder:text-forest-800/40 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30"
         />
-        <button
-          type="submit"
-          disabled={typing || !draft.trim()}
-          aria-label="Send message"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-forest-900 text-sand-50 transition-colors hover:bg-forest-800 disabled:opacity-40"
-        >
-          {typing ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
+        {typing ? (
+          <button
+            type="button"
+            onClick={stopGeneration}
+            aria-label="Stop response"
+            title="Stop response"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-forest-900 text-sand-50 transition-colors hover:bg-forest-800"
+          >
+            <Square className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!draft.trim()}
+            aria-label="Send message"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-forest-900 text-sand-50 transition-colors hover:bg-forest-800 disabled:opacity-40"
+          >
             <Send className="h-4 w-4" aria-hidden="true" />
-          )}
-        </button>
+          </button>
+        )}
       </form>
     </div>
   );
