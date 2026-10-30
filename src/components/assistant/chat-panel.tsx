@@ -586,17 +586,24 @@ export function ChatPanel({
       </div>
 
       {messages.length <= 1 && !error ? (
-        <div className="flex flex-wrap gap-2 border-t border-sand-200 bg-white/70 px-4 pt-3 pb-2">
-          {SUGGESTIONS.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              onClick={() => void send(suggestion)}
-              className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-forest-800 transition-colors hover:border-gold-400 hover:bg-sand-100"
-            >
-              {suggestion}
-            </button>
-          ))}
+        <div
+          role="region"
+          aria-label="Suggested questions"
+          tabIndex={0}
+          className="overflow-x-auto overscroll-x-contain border-t border-sand-200 bg-white/70 px-4 pt-3 pb-2 [scrollbar-width:thin]"
+        >
+          <div className="flex w-max snap-x snap-mandatory gap-2">
+            {SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => void send(suggestion)}
+                className="shrink-0 snap-start rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-forest-800 transition-colors hover:border-gold-400 hover:bg-sand-100"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 
