@@ -228,7 +228,7 @@ export function SiteHeader({
 
       <div
         className={cn(
-          "mx-4 overflow-hidden rounded-3xl border border-sand-200 bg-white/95 text-forest-900 shadow-lg backdrop-blur-md transition-[max-height,opacity,margin] duration-300 lg:hidden",
+          "absolute inset-x-4 top-full z-50 overflow-hidden rounded-3xl border border-sand-200 bg-white/95 text-forest-900 shadow-lg backdrop-blur-md transition-[max-height,opacity,margin] duration-300 lg:hidden",
           open
             ? "mt-2 max-h-[85vh] overflow-y-auto opacity-100"
             : "mt-0 max-h-0 opacity-0",

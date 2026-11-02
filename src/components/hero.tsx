@@ -37,7 +37,7 @@ export function Hero({
         "relative flex items-center overflow-hidden bg-forest-950",
         size === "full"
           ? "min-h-[100vh] min-h-[100svh] lg:min-h-[100vh] [@supports(height:100svh)]:min-h-[100svh]"
-          : "min-h-[58vh] md:min-h-[66vh] lg:min-h-[74vh]",
+          : "-mt-20 min-h-[58vh] md:min-h-[66vh] lg:mt-0 lg:min-h-[74vh]",
         className,
       )}
     >
