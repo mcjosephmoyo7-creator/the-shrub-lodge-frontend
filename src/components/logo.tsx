@@ -21,24 +21,26 @@ export function Logo({
   variant?: "full" | "mark";
 }) {
   const markOnly = variant === "mark";
+  const isDefaultLogo = !logoUrl || logoUrl === "/images/logo.png";
+  const imageSrc =
+    tone === "light" && isDefaultLogo
+      ? "/images/logo-light.png"
+      : logoUrl || "/images/logo.png";
 
   return (
     <Link
       href="/"
       aria-label={`${siteName} home`}
-      className={cn("group flex items-center gap-3", className)}
+      className={cn("flex items-center gap-3", className)}
     >
       <span
         className={cn(
-          "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full border p-1 transition-all duration-300 group-hover:scale-105",
-          markOnly ? "h-14 w-14" : "h-11 w-11",
-          tone === "light"
-            ? "border-gold-400/50 bg-forest-900/40 shadow-sm shadow-black/20"
-            : "border-forest-900/20 bg-sand-100/80 shadow-sm",
+          "relative flex shrink-0 items-center justify-center",
+          markOnly ? "h-11 w-11 lg:h-14 lg:w-14" : "h-11 w-11",
         )}
       >
         <Image
-          src={logoUrl || "/images/logo.png"}
+          src={imageSrc}
           alt={`${siteName} logo`}
           width={48}
           height={48}
